@@ -59,6 +59,15 @@ console.log(uri);
          * 
         */
 
+
+        app.get('/booking',async (req,res)=>{
+          const patient =req.query.patient
+          console.log(patient);
+          const query = {patient:patient}
+          const bookings = await bookingCollection.find(query).toArray()
+          res.send(bookings)
+        })
+
          app.post('/booking', async(req,res)=>{
            const booking = req.body;
            const query = {treatment: booking.treatment, date: booking.date,patient:booking.patient}
@@ -78,7 +87,7 @@ console.log(uri);
 
 
 app.get('/', (req, res) => {
-  res.send('Hello doctor Uncell')
+  res.send('Hello')
 })
 
 app.listen(port, () => {
