@@ -18,17 +18,17 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization
-  if(!authHeader){
-    return res.status(401).send({message: 'unAuthorized access'})
+  if (!authHeader) {
+    return res.status(401).send({ message: 'unAuthorized access' })
   }
-  const token  = authHeader.split(' ')[1]
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function(err, decoded) {
-    if(err){
-      return res.status(403).send({message: 'Forbidden access'})
+  const token = authHeader.split(' ')[1]
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: 'Forbidden access' })
     }
     req.decoded = decoded
     next()
-    console.log(decoded.foo) // bar
+    // console.log(decoded.foo) // bar
   });
 }
 
@@ -46,13 +46,42 @@ async function run() {
       res.send(services)
     })
 
+    app.get('/user', verifyJWT, async (req, res) => {
+      const users = await userCollection.find().toArray()
+      res.send(users)
+    })
+    // admin verefide
+    app.get('/admin/:email',async(req,res)=>{
+      const email = req.params.email
+      const user = await userCollection.findOne({email:email})
+      const isAdmin = user.role === 'admin'
+      res.send({admin: isAdmin})
+    })
+
+    app.put('/user/admin/:email', verifyJWT, async (req, res) => {
+      const email = req.params.email
+      const requester = req.decoded.email
+      const requesterAccount = await userCollection.findOne({ email: requester })
+      if (requesterAccount.role === 'admin') {
+        const filter = { email: email }
+        const updateDoc = {
+          $set: { role: 'user' },
+        }
+        const result = await userCollection.updateOne(filter, updateDoc)
+        res.send(result)
+      }
+      else{
+        res.status(403).send({message: 'forbidden'})
+      }
+
+    })
     app.put('/user/:email', async (req, res) => {
       const email = req.params.email
       const user = req.body
       const filter = { email: email }
       const options = { upsert: true }
       const updateDoc = {
-        $set: user
+        $set: user,
       }
       const result = await userCollection.updateOne(filter, updateDoc, options)
       const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
@@ -62,17 +91,14 @@ async function run() {
     app.get('/available', async (req, res) => {
       const date = req.query.date;
 
-      //step 1
-      //get the booking of the day output [{} {} {}  {} {}]
+
       const services = await serviceCollection.find().toArray()
       const query = { date: date }
       const bookings = await bookingCollection.find(query).toArray()
 
-      //stap 3 for each service,
+
       services.forEach(service => {
-        //stap 4find booking for services[{} {} {}  {} {}]
-        //stap 5 selected slots for the services Booking['','','','',]
-        // step 6 select thos slots that are not in bookdslots
+
         const serviceBookings = bookings.filter(book => book.treatment === service.name)
         const bookedSlots = serviceBookings.map(book => book.slot)
         const available = service.slots.filter(slot => !bookedSlots.includes(slot))
@@ -96,15 +122,14 @@ async function run() {
     app.get('/booking', verifyJWT, async (req, res) => {
       const patient = req.query.patient
       const decodedEmail = req.decoded.email
-      if(patient === decodedEmail){
 
-        // console.log('authHeader', authorization);
+      if (patient === decodedEmail) {
         const query = { patient: patient }
         const bookings = await bookingCollection.find(query).toArray()
-        res.send(bookings)
+        return res.send(bookings)
       }
-      else{
-        return res.status(403).send({message: "Fornidden access"})
+      else {
+        return res.status(403).send({ message: "Fornidden access" })
       }
     })
 
@@ -112,9 +137,11 @@ async function run() {
       const booking = req.body;
       const query = { treatment: booking.treatment, date: booking.date, patient: booking.patient }
       const exists = await bookingCollection.findOne(query)
+
       if (exists) {
         return res.send({ success: false, booking: exists })
       }
+
       const result = await bookingCollection.insertOne(booking)
       return res.send({ success: true, result })
     })
