@@ -1,10 +1,11 @@
 const express = require('express')
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const app = express()
 const port = process.env.PORT || 5000
+const stripe = require('stripe')(process.env.STRIPE_KEY);
 
 app.use(cors())
 app.use(express.json())
@@ -50,6 +51,19 @@ async function run() {
         res.status(403).send({ message: 'forbidden' });
       }
     }
+    //payment intregretion
+    app.post('/create-payment-intent', verifyJWT, async(req,res)=>{
+      const service = req.body
+      const price = service.price
+      const amount= price*100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount:amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      })
+      req.send({clientSecret: paymentIntent.client_secret})
+
+    })
 
     app.get('/service', async (req, res) => {
       const query = {}
@@ -140,6 +154,13 @@ async function run() {
       }
     })
 
+    app.get('/booking/:id', verifyJWT,  async(req,res)=>{
+      const id = req.params.id
+      const query = {_id: ObjectId(id)}
+      const booking = await bookingCollection.findOne(query)
+      res.send(booking)
+    })
+
     app.post('/booking', async (req, res) => {
       const booking = req.body;
       const query = { treatment: booking.treatment, date: booking.date, patient: booking.patient }
@@ -185,3 +206,6 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`doctor app is connected on port ${port}`)
 })
+
+
+// pass=T!!3~Xxt;ywpdgC
