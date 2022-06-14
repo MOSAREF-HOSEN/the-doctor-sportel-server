@@ -5,7 +5,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const app = express()
 const port = process.env.PORT || 5000
-const stripe = require('stripe')(process.env.STRIPE_KEY);
+// const stripe = require('stripe')(process.env.STRIPE_KEY);
 
 app.use(cors())
 app.use(express.json())
@@ -29,7 +29,7 @@ function verifyJWT(req, res, next) {
     }
     req.decoded = decoded
     next()
-    // console.log(decoded.foo) // bar
+    
   });
 }
 
@@ -194,7 +194,7 @@ async function run() {
 
   }
   finally {
-
+    console.log(error);
   }
 } run().catch(console.dir)
 
