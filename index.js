@@ -134,8 +134,6 @@ async function run() {
      * api namming conventrion
      * api(/booking)//get all booking in  this collection. 
      * or get more then one  or by filter
-     *   
-     * 
     */
 
     app.get('/booking', verifyJWT, async (req, res) => {
