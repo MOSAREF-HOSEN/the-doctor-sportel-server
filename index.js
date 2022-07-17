@@ -5,7 +5,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const app = express()
 const port = process.env.PORT || 5000
-// const stripe = require('stripe')(process.env.STRIPE_KEY);
+
 
 app.use(cors())
 app.use(express.json())
@@ -64,14 +64,14 @@ async function run() {
       req.send({clientSecret: paymentIntent.client_secret})
 
     })
-
+// services api
     app.get('/service', async (req, res) => {
       const query = {}
       const cursor = serviceCollection.find(query).project({name:1})
       const services = await cursor.toArray()
       res.send(services)
     })
-
+// user api
     app.get('/user', verifyJWT, async (req, res) => {
       const users = await userCollection.find().toArray()
       res.send(users)
@@ -84,7 +84,7 @@ async function run() {
       const isAdmin = user.role === 'admin'
       res.send({admin: isAdmin})
     })
-
+//user admin role
     app.put('/user/admin/:email', verifyJWT,verifyAdmin, async (req, res) => {
       const email = req.params.email
       const requester = req.decoded.email
@@ -96,6 +96,7 @@ async function run() {
      
 
     })
+    //user data save database
     app.put('/user/:email', async (req, res) => {
       const email = req.params.email
       const user = req.body
@@ -108,7 +109,7 @@ async function run() {
       const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
       res.send({ result, token })
     })
-
+//avalabole apponment
     app.get('/available', async (req, res) => {
       const date = req.query.date;
 
@@ -124,21 +125,18 @@ async function run() {
         const bookedSlots = serviceBookings.map(book => book.slot)
         const available = service.slots.filter(slot => !bookedSlots.includes(slot))
         service.slots = available
-
       })
-
       //find booking for that servic
-
       res.send(services)
     })
 
     /**
      * api namming conventrion
-     * api(/booking)//get all booking in  this collection. or get more then one  or by filter
+     * api(/booking)//get all booking in  this collection. 
+     * or get more then one  or by filter
      *   
      * 
     */
-
 
     app.get('/booking', verifyJWT, async (req, res) => {
       const patient = req.query.patient
@@ -186,7 +184,7 @@ async function run() {
     })
     app.delete('/doctor/:email', verifyJWT, verifyAdmin, async(req,res)=>{
       const doctor = req.params.email
-      const filter = {email:email}
+      const filter = {email:doctor}
 
       const result = await doctorCollection.deleteOne(filter)
       res.send(result)
@@ -194,13 +192,13 @@ async function run() {
 
   }
   finally {
-    console.log(error);
+    // console.log(error);
   }
 } run().catch(console.dir)
 
 
 app.get('/', (req, res) => {
-  res.send('Hello')
+  res.send('Hello Doctor')
 })
 
 app.listen(port, () => {
